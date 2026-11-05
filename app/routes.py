@@ -1,7 +1,7 @@
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
@@ -349,9 +349,8 @@ def create_book(
         description=payload.description,
     )
     db.add(book)
-    db.flush()
     db.add_all(
-        [BookCopy(book_id=book.id, status="available") for _ in range(payload.initial_copies)]
+        [BookCopy(book=book, status="available") for _ in range(payload.initial_copies)]
     )
     commit_or_conflict(db)
     db.refresh(book)

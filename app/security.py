@@ -37,7 +37,7 @@ def create_token_pair(user_id: int) -> tuple[str, str, str]:
     access, _, _ = create_token(
         user_id, "access", timedelta(minutes=ACCESS_TOKEN_MINUTES)
     )
-    refresh, refresh_id, expires_at = create_token(
+    refresh, refresh_id, _ = create_token(
         user_id, "refresh", timedelta(days=REFRESH_TOKEN_DAYS)
     )
     return access, refresh, refresh_id

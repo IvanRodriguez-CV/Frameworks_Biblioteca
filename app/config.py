@@ -17,7 +17,7 @@ def env_bool(name: str, default: bool) -> bool:
     }
 
 
-DEBUG = env_bool("DEBUG", True)
+DEBUG = env_bool("DEBUG", False)
 SECRET_KEY = os.environ.get("SECRET_KEY", "").strip()
 if not SECRET_KEY:
     if not DEBUG:

@@ -1,0 +1,20 @@
+[Unit]
+Description=Gunicorn service for the Biblioteca Django application
+After=network.target
+
+[Service]
+Type=simple
+User=biblioteca
+Group=www-data
+WorkingDirectory=/opt/biblioteca/app
+EnvironmentFile=/etc/biblioteca/biblioteca.env
+Environment=PYTHONUNBUFFERED=1
+RuntimeDirectory=biblioteca
+RuntimeDirectoryMode=0750
+UMask=0007
+ExecStart=/opt/biblioteca/app/.venv/bin/gunicorn --workers 3 --bind unix:/run/biblioteca/gunicorn.sock config.wsgi:application
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

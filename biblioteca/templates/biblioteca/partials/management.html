@@ -1,0 +1,31 @@
+<section class="management-section" id="gestion" aria-labelledby="management-title">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow">PERSONAL AUTORIZADO</p>
+      <h2 id="management-title">Administración de biblioteca</h2>
+    </div>
+    <label class="management-picker">
+      Administrar
+      <select id="management-resource">
+        <option value="books">Libros</option>
+        <option value="authors">Autores</option>
+        <option value="categories">Categorías</option>
+        <option value="copies">Ejemplares</option>
+        <option value="users">Usuarios</option>
+        <option value="loans">Préstamos</option>
+      </select>
+    </label>
+  </div>
+  <div class="management-toolbar">
+    <p id="management-message" role="status" aria-live="polite"></p>
+    <button id="management-new" class="login-button" type="button">Agregar</button>
+  </div>
+  <form class="management-form" id="management-form" hidden>
+    <div id="management-fields" class="management-fields"></div>
+    <div class="management-actions">
+      <button class="login-button" type="submit">Guardar</button>
+      <button class="management-cancel" id="management-cancel" type="button">Cancelar</button>
+    </div>
+  </form>
+  <div id="management-list" class="management-list" aria-live="polite"></div>
+</section>

@@ -1,0 +1,32 @@
+<section class="access-band" id="acceso" aria-labelledby="access-title">
+  <div class="access-copy">
+    <p class="eyebrow">TU ESPACIO DE LECTURA</p>
+    <h2 id="access-title">Préstamos sin complicaciones.</h2>
+    <p>Inicia sesión para pedir un ejemplar y consultar tus préstamos.</p>
+  </div>
+  <div class="auth-panel">
+    <form class="login-form" id="login-form">
+      <label class="sr-only" for="login-username">Usuario</label>
+      <input id="login-username" name="username" type="text" autocomplete="username" placeholder="Tu usuario" required>
+      <label class="sr-only" for="login-password">Contraseña</label>
+      <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="Tu contraseña" required>
+      <button class="login-button" type="submit">Entrar</button>
+    </form>
+    <p class="form-switch" id="login-switch">¿No tienes cuenta? <button class="text-button" id="show-register" type="button">Crear una</button></p>
+    <form class="register-form" id="register-form" hidden>
+      <label class="sr-only" for="register-username">Nombre de usuario</label>
+      <input id="register-username" name="username" type="text" autocomplete="username" placeholder="Nombre de usuario" maxlength="150" required>
+      <label class="sr-only" for="register-email">Correo electrónico</label>
+      <input id="register-email" name="email" type="email" autocomplete="email" placeholder="Correo electrónico" required>
+      <label class="sr-only" for="register-password">Contraseña</label>
+      <input id="register-password" name="password" type="password" autocomplete="new-password" placeholder="Contraseña (mínimo 8 caracteres)" minlength="8" required>
+      <button class="login-button" type="submit">Crear cuenta</button>
+    </form>
+    <p class="form-switch" id="register-switch" hidden>¿Ya tienes cuenta? <button class="text-button" id="show-login" type="button">Iniciar sesión</button></p>
+  </div>
+  <div class="access-session" id="access-session" hidden>
+    <span id="session-message">Sesión iniciada.</span>
+    <button class="text-button" id="logout-button" type="button">Cerrar sesión</button>
+  </div>
+  <p class="form-message" id="login-message" role="status" aria-live="polite"></p>
+</section>

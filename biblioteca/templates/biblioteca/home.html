@@ -1,0 +1,28 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Consulta libros y ejemplares disponibles en la biblioteca.">
+  <title>Biblioteca | Catálogo</title>
+  <link rel="stylesheet" href="{% static 'biblioteca/css/library.css' %}">
+  <script type="module" src="{% static 'biblioteca/js/main.js' %}"></script>
+</head>
+<body>
+  <div id="public-site">
+    {% include "biblioteca/partials/header.html" %}
+
+    <main>
+      {% include "biblioteca/partials/hero.html" %}
+      {% include "biblioteca/partials/access.html" %}
+      {% include "biblioteca/partials/catalog.html" %}
+      {% include "biblioteca/partials/loans.html" %}
+    </main>
+
+    {% include "biblioteca/partials/footer.html" %}
+  </div>
+
+  {% include "biblioteca/partials/admin-dashboard.html" %}
+</body>
+</html>

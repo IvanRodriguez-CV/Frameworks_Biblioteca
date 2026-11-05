@@ -1,0 +1,65 @@
+<section class="catalog-section" id="catalogo">
+  <div class="section-heading">
+    <div>
+      <p class="eyebrow"><span class="eyebrow-line"></span> UNA HISTORIA PARA CADA PERSONA</p>
+      <h2>Explora el catálogo<span class="brand-dot">.</span></h2>
+    </div>
+    <form class="search-form" method="get" action="{% url 'library-home' %}" role="search">
+      <label class="sr-only" for="catalog-search">Buscar libros</label>
+      <input id="catalog-search" type="search" name="q" value="{{ search }}" maxlength="100" placeholder="Busca un libro o autor">
+      <button type="submit" aria-label="Buscar">⌕</button>
+    </form>
+  </div>
+
+  {% if page.object_list %}
+    <div class="book-grid">
+      {% for book in page.object_list %}
+        <article class="book-card" data-book-id="{{ book.id }}">
+          <div class="book-info">
+            <div>
+              <h3>{{ book.title }}</h3>
+              <p class="book-author">{{ book.author.name }}{% if book.publication_year %} · {{ book.publication_year }}{% endif %}</p>
+              <p class="book-author">{{ book.category.name }}</p>
+            </div>
+            {% if book.available_copies_count %}
+              <p class="availability"><span class="availability-dot"></span><span class="availability-text">{{ book.available_copies_count }} disponible{{ book.available_copies_count|pluralize:"s" }}</span></p>
+              {% if book.available_inventory %}
+                <button class="borrow-button" type="button" data-copy-id="{{ book.available_inventory.0.id }}">Pedir préstamo <span aria-hidden="true">→</span></button>
+              {% endif %}
+            {% else %}
+              <p class="availability unavailable"><span class="availability-dot"></span><span class="availability-text">Sin ejemplares disponibles</span></p>
+            {% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+
+    {% if page.has_other_pages %}
+      <nav class="pagination" aria-label="Paginación del catálogo">
+        {% if page.has_previous %}
+          <a href="?q={{ search|urlencode }}&page={{ page.previous_page_number }}">← Anterior</a>
+        {% else %}
+          <span class="pagination-disabled">← Anterior</span>
+        {% endif %}
+        <span>Página {{ page.number }} de {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}
+          <a href="?q={{ search|urlencode }}&page={{ page.next_page_number }}">Siguiente →</a>
+        {% else %}
+          <span class="pagination-disabled">Siguiente →</span>
+        {% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <div class="empty-state">
+      <span class="empty-icon" aria-hidden="true">⌕</span>
+      {% if search %}
+        <h3>No encontramos ese libro.</h3>
+        <p>Prueba con otro título, autor o categoría.</p>
+        <a href="{% url 'library-home' %}">Ver todo el catálogo</a>
+      {% else %}
+        <h3>Pronto habrá nuevas lecturas.</h3>
+        <p>El catálogo está vacío por ahora. Vuelve cuando el bibliotecario agregue libros.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+</section>

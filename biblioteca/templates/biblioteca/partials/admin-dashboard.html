@@ -1,0 +1,21 @@
+<div id="admin-dashboard" class="admin-dashboard" hidden>
+  <header class="admin-header">
+    <a class="brand" href="{% url 'library-home' %}" aria-label="Biblioteca, inicio">
+      <span class="brand-icon" aria-hidden="true">B</span>
+      <span>Biblioteca<span class="brand-dot">.</span></span>
+    </a>
+    <div class="admin-header-user">
+      <span id="admin-session-message">Panel del personal</span>
+      <button class="management-cancel" id="admin-logout-button" type="button">Cerrar sesión</button>
+    </div>
+  </header>
+  <main class="admin-main">
+    <div class="admin-intro">
+      <p class="eyebrow">PERSONAL AUTORIZADO</p>
+      <h1>Panel de administración</h1>
+      <p>Administra el catálogo, las cuentas y los préstamos desde un solo lugar.</p>
+    </div>
+    {% include "biblioteca/partials/management.html" %}
+  </main>
+  {% include "biblioteca/partials/footer.html" %}
+</div>

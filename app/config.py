@@ -23,6 +23,17 @@ if not SECRET_KEY:
     if not DEBUG:
         raise RuntimeError("SECRET_KEY debe configurarse cuando DEBUG está desactivado.")
     SECRET_KEY = "development-only-not-for-production-change-this-key"
+if not DEBUG and (
+    len(SECRET_KEY) < 32
+    or SECRET_KEY
+    in {
+        "development-only-change-before-production",
+        "development-only-not-for-production-change-this-key",
+    }
+):
+    raise RuntimeError(
+        "SECRET_KEY debe ser único, no usar la clave de ejemplo y tener al menos 32 caracteres."
+    )
 
 ACCESS_TOKEN_MINUTES = int(os.environ.get("ACCESS_TOKEN_MINUTES", "15"))
 REFRESH_TOKEN_DAYS = int(os.environ.get("REFRESH_TOKEN_DAYS", "1"))

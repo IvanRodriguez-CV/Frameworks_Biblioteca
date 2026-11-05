@@ -143,7 +143,7 @@ sudo systemctl restart nginx
 
 Configura un certificado HTTPS para el dominio (por ejemplo, con Certbot). En el firewall permite SSH y HTTP/HTTPS; limita MySQL a la dirección privada de la VPS. No uses `DEBUG=1` en producción.
 
-La aplicación inicia con `DEBUG=0` si no se define esa variable y requiere un `SECRET_KEY` configurado. El archivo `.env.example` activa el modo de desarrollo de forma explícita para el uso local.
+La aplicación inicia con `DEBUG=0` si no se define esa variable. En producción requiere un `SECRET_KEY` único de al menos 32 caracteres y rechaza la clave incluida en el ejemplo; para desarrollo local, `.env.example` activa explícitamente el modo de desarrollo.
 
 Comprobaciones y logs:
 

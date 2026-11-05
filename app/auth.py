@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -43,7 +44,14 @@ def register(payload: RegisterInput, db: Session = Depends(get_db)):
         role="reader",
     )
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El nombre de usuario o correo electrónico ya está registrado.",
+        ) from None
     db.refresh(user)
     return user
 
@@ -94,7 +102,11 @@ def refresh_token(payload: RefreshInput, db: Session = Depends(get_db)):
         raise unauthorized
     db.add(RevokedToken(token_id=token_id, expires_at=expires_at))
     access, refresh, _ = create_token_pair(user.id)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise unauthorized from None
     return {"access": access, "refresh": refresh, "token_type": "bearer"}
 
 

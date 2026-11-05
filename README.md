@@ -63,6 +63,21 @@ Swagger documenta los esquemas JSON, parámetros y respuestas. En **Authorize**,
 - Eliminaciones que dejarían préstamos o relaciones huérfanas se rechazan.
 - Errores habituales: `400` entrada inválida, `401` token ausente/inválido, `403` permiso insuficiente, `404` recurso inexistente y `409` conflicto.
 
+## Demostración manual según la rúbrica
+
+La rúbrica solicita demostrar estos casos. No se incluye una suite de pruebas automatizadas; realiza la comprobación desde Swagger UI (`/api/docs`) con una base de práctica y sin modificar datos directamente en la base. Primero aplica las migraciones, crea el administrador inicial y registra una cuenta lectora. Para las rutas protegidas, inicia sesión y usa **Authorize** con el token de acceso.
+
+1. **Login válido:** `POST /api/auth/token/` con credenciales correctas devuelve `200` y los tokens.
+2. **Login inválido:** el mismo endpoint con una contraseña incorrecta devuelve `401` y un mensaje genérico.
+3. **Ruta sin token:** `GET /api/loans/active/` sin autenticación devuelve `401`.
+4. **Token inválido o expirado:** repite la ruta protegida con un token inválido; la respuesta es `401`.
+5. **Acción sin permiso:** autentícate como lector e intenta `POST /api/books/`; la API responde `403`.
+6. **CRUD y restricción de libros:** como administrador o bibliotecario, crea un autor y una categoría si hacen falta, crea un libro, consúltalo con `GET /api/books/{id}/` y actualízalo con `PATCH`. El libro crea ejemplares iniciales; intentar borrarlo mientras conserva ejemplares responde `409`, protegiendo la integridad.
+7. **Préstamo válido:** como lector, envía `POST /api/loans/` con `{"copy": ID_DEL_EJEMPLAR}`. Devuelve `201` y el ejemplar queda prestado.
+8. **Préstamo no disponible:** vuelve a solicitar el mismo ejemplar; la API lo rechaza con `409`.
+9. **Devolución:** envía `POST /api/loans/{id}/return/`; comprueba que `GET /api/copies/{id}/` muestre el ejemplar disponible. Una segunda devolución responde `409`.
+10. **Datos inválidos:** como personal, intenta crear un libro con el título vacío; la API rechaza la entrada con `400`.
+
 ## Despliegue en VPS Ubuntu
 
 Usa una VPS para FastAPI y una base MySQL administrada o privada. No abras el puerto MySQL a toda Internet. La aplicación se ejecuta con Uvicorn y systemd detrás de Nginx; configura dominio y HTTPS antes de exponerla públicamente.

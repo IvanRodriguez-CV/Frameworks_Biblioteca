@@ -1,154 +1,152 @@
-# Sistema Bibliotecario
+# API REST para sistema bibliotecario
 
-API REST y sitio web para administrar usuarios, catálogo, ejemplares y préstamos, desarrollado con Django REST Framework.
+API backend construida con **FastAPI**, SQLAlchemy y MySQL. No incluye sitio web. La documentación interactiva se genera automáticamente con OpenAPI/Swagger UI.
 
 ## Funciones
 
-- Registro de lectores y autenticación JWT con expiración y renovación.
-- Roles de administrador, bibliotecario y lector.
-- Catálogo de autores, categorías y libros; cada libro cuenta con ejemplares físicos.
+- Registro de lectores e inicio de sesión con JWT de acceso y renovación.
+- Roles de administrador, bibliotecario y lector; solo un administrador puede asignar roles.
+- CRUD de autores, categorías y libros; administración de ejemplares físicos.
 - Préstamos, devoluciones, disponibilidad e historial.
-- Documentación interactiva en `/api/docs/` y esquema OpenAPI en `/api/schema/`.
-- Interfaz web en `/`.
-
-Los lectores pueden consultar el catálogo y gestionar sus propios préstamos. Bibliotecarios y administradores administran el catálogo y las cuentas. Solo un administrador puede asignar o cambiar roles. El registro público siempre crea lectores.
+- Validación de datos, paginación, búsquedas, claves foráneas protegidas y errores HTTP coherentes.
 
 ## Requisitos
 
 - Python 3.10 o posterior.
-- MySQL compatible con Django 5.2 (MySQL 8.0.11+ o MariaDB 10.5+).
-- Para desarrollo local también puede usarse SQLite.
+- MySQL 8.0.11+ o MariaDB 10.5+ para despliegue. En desarrollo se puede usar SQLite.
 
 ## Desarrollo local
 
-Desde la carpeta del proyecto:
+En Windows PowerShell:
 
 ```powershell
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 Copy-Item .env.example .env
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver
+python -m alembic upgrade head
+python -m uvicorn app.main:app --reload
 ```
 
-La aplicación queda en `http://127.0.0.1:8000/` y Swagger UI en `http://127.0.0.1:8000/api/docs/`. Para SQLite, deja `DB_ENGINE=sqlite` en `.env`. No copies una base SQLite local al servidor VPS.
+En Linux/macOS activa el entorno con `source .venv/bin/activate`. La API queda en `http://127.0.0.1:8000/`; Swagger UI está en `/api/docs`, ReDoc en `/api/redoc` y OpenAPI en `/api/openapi.json`. La ruta `/health` permite comprobar el servicio.
+
+SQLite local se crea en `biblioteca.db`. Para un administrador inicial, en otra terminal ejecuta `python -m app.create_admin`; la contraseña se solicita de forma interactiva y no se guarda en argumentos de shell.
+
+## Rutas principales
+
+Las rutas de recursos mantienen el prefijo `/api`:
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| POST | `/api/auth/register/` | Público; siempre crea lector |
+| POST | `/api/auth/token/` | Público; recibe JSON `username` y `password` |
+| POST | `/api/auth/token/refresh/` | Público; rota y revoca el refresh anterior |
+| GET | `/api/auth/me/` | Usuario autenticado |
+| GET/POST | `/api/authors/`, `/api/categories/`, `/api/books/` | Lectura pública; escritura por personal |
+| GET/POST/DELETE | `/api/copies/` | Lectura pública; cambios por personal |
+| GET/POST | `/api/loans/` | Usuario autenticado; el lector solo crea préstamos propios |
+| GET | `/api/loans/active/`, `/api/loans/history/` | Usuario autenticado |
+| POST | `/api/loans/{id}/return/` | Propietario del préstamo o personal |
+| CRUD | `/api/users/` | Personal; solo administrador asigna o cambia roles |
+
+Swagger documenta los esquemas JSON, parámetros y respuestas. En **Authorize**, ingresa el access token; Swagger agrega el esquema Bearer.
+
+## Reglas y permisos
+
+- Un libro es una ficha bibliográfica; cada `BookCopy` representa un ejemplar físico.
+- El préstamo reserva el ejemplar mediante una actualización condicional para evitar dos préstamos simultáneos de la misma copia.
+- La devolución libera el ejemplar. Una segunda devolución responde `409`.
+- El lector solo puede listar, consultar y devolver sus propios préstamos; el personal ve todos.
+- El registro público siempre asigna `reader`; el rol suministrado no permite elevar privilegios.
+- Los bibliotecarios pueden gestionar cuentas, pero no enviar el campo `role`; solo administradores pueden asignarlo.
+- Contraseñas con hash Argon2; JWT firmados, de corta duración y verificados contra la cuenta actual.
+- Eliminaciones que dejarían préstamos o relaciones huérfanas se rechazan.
+- Errores habituales: `400` entrada inválida, `401` token ausente/inválido, `403` permiso insuficiente, `404` recurso inexistente y `409` conflicto.
 
 ## Despliegue en VPS Ubuntu
 
-La aplicación de producción debe ejecutarse con Gunicorn detrás de Nginx y HTTPS; no uses `runserver` en una VPS pública.
+Usa una VPS para FastAPI y una base MySQL administrada o privada. No abras el puerto MySQL a toda Internet. La aplicación se ejecuta con Uvicorn y systemd detrás de Nginx; configura dominio y HTTPS antes de exponerla públicamente.
 
-### 1. Preparar sistema y aplicación
-
-Instala Python, Nginx y los paquetes necesarios para compilar `mysqlclient`:
+### Instalar
 
 ```bash
 sudo apt update
-sudo apt install -y python3-venv python3-dev build-essential pkg-config default-libmysqlclient-dev nginx
+sudo apt install -y python3-venv python3-dev build-essential pkg-config nginx git
 sudo useradd --system --create-home --home-dir /opt/biblioteca --shell /usr/sbin/nologin biblioteca
-```
-
-Clona el repositorio en `/opt/biblioteca/app`, instala dependencias y prepara la carpeta de configuración:
-
-```bash
 sudo -u biblioteca git clone https://github.com/IvanRodriguez-CV/Frameworks_Biblioteca.git /opt/biblioteca/app
-sudo -u biblioteca python3 -m venv /opt/biblioteca/app/.venv
-sudo -u biblioteca /opt/biblioteca/app/.venv/bin/pip install -r /opt/biblioteca/app/requirements.txt
+sudo -u biblioteca python3 -m venv /opt/biblioteca/venv-fastapi
+sudo -u biblioteca /opt/biblioteca/venv-fastapi/bin/pip install -r /opt/biblioteca/app/requirements.txt
 sudo mkdir -p /etc/biblioteca
 ```
 
-### 2. Configurar secretos y base de datos
+### Configurar entorno
 
-Crea una base MySQL vacía (por ejemplo, Azure Database for MySQL Flexible Server), un usuario exclusivo para la aplicación y una conexión TLS limitada a la VPS. No abras MySQL a toda Internet.
-
-Crea `/etc/biblioteca/biblioteca.env` fuera del repositorio con valores propios del servidor:
+Crea `/etc/biblioteca/biblioteca.env` con los datos propios del servidor:
 
 ```ini
 DEBUG=0
-SECRET_KEY=reemplazar-por-un-secreto-aleatorio-largo
-ALLOWED_HOSTS=tu-dominio.example
+SECRET_KEY=REEMPLAZAR_POR_UN_SECRETO_LARGO_ALEATORIO
 DB_ENGINE=mysql
-DB_NAME=biblioteca_api
+DB_NAME=biblioteca_fastapi
 DB_USER=biblioteca_app
-DB_PASSWORD=reemplazar-por-la-clave-de-la-base
-DB_HOST=tu-servidor.mysql.database.azure.com
+DB_PASSWORD=REEMPLAZAR_POR_LA_CLAVE_DE_LA_BASE
+DB_HOST=servidor.mysql.database.azure.com
 DB_PORT=3306
-DB_SSL_CA=/etc/ssl/certs/ca-certificates.crt
+DB_SSL_CA=/ruta/al/certificado-ca.pem
+ACCESS_TOKEN_MINUTES=15
+REFRESH_TOKEN_DAYS=1
 ```
 
-Genera un `SECRET_KEY` nuevo y no reutilices las claves de ejemplo. Ajusta la ruta CA a la indicada por tu proveedor y limita permisos del archivo:
+Genera un secreto nuevo, no uses el ejemplo de desarrollo. `DB_SSL_CA` debe apuntar al certificado CA indicado por el proveedor; si el proveedor no lo requiere, deja la variable vacía. No guardes este archivo en Git:
 
 ```bash
 sudo chown root:www-data /etc/biblioteca/biblioteca.env
 sudo chmod 640 /etc/biblioteca/biblioteca.env
 ```
 
-### 3. Inicializar y activar el servicio
+### Migrar y crear administrador
 
-Revisa y personaliza los archivos de `/opt/biblioteca/app/deploy/` para tu dominio. Instala la unidad systemd y la configuración de Nginx:
+```bash
+sudo systemd-run --wait --pipe --collect --property=User=biblioteca --property=WorkingDirectory=/opt/biblioteca/app --property=EnvironmentFile=/etc/biblioteca/biblioteca.env /opt/biblioteca/venv-fastapi/bin/alembic -c /opt/biblioteca/app/alembic.ini upgrade head
+sudo systemd-run --wait --pty --collect --property=User=biblioteca --property=WorkingDirectory=/opt/biblioteca/app --property=EnvironmentFile=/etc/biblioteca/biblioteca.env /opt/biblioteca/venv-fastapi/bin/python -m app.create_admin
+```
+
+### Activar Uvicorn y Nginx
+
+Personaliza `tu-dominio.example` en el archivo Nginx. Luego instala los archivos incluidos:
 
 ```bash
 sudo cp /opt/biblioteca/app/deploy/biblioteca.service /etc/systemd/system/
+sudo cp /opt/biblioteca/app/deploy/nginx-rate-limit.conf /etc/nginx/conf.d/biblioteca-rate-limit.conf
 sudo cp /opt/biblioteca/app/deploy/nginx-biblioteca.conf /etc/nginx/sites-available/biblioteca
 sudo ln -s /etc/nginx/sites-available/biblioteca /etc/nginx/sites-enabled/biblioteca
-```
-
-Antes de activar Nginx, reemplaza `tu-dominio.example` en su configuración. Después:
-
-```bash
-sudo -u biblioteca /opt/biblioteca/app/.venv/bin/python /opt/biblioteca/app/manage.py migrate
-sudo -u biblioteca /opt/biblioteca/app/.venv/bin/python /opt/biblioteca/app/manage.py createsuperuser
-sudo -u biblioteca /opt/biblioteca/app/.venv/bin/python /opt/biblioteca/app/manage.py collectstatic --noinput
-sudo -u biblioteca /opt/biblioteca/app/.venv/bin/python /opt/biblioteca/app/manage.py check --deploy
 sudo nginx -t
 sudo systemctl daemon-reload
 sudo systemctl enable --now biblioteca
 sudo systemctl restart nginx
 ```
 
-Configura un certificado HTTPS (por ejemplo, con Certbot) antes de usar el sistema públicamente. Abre únicamente SSH y HTTP/HTTPS en el firewall; la base de datos debe aceptar conexiones solo desde la VPS.
+Configura un certificado HTTPS para el dominio (por ejemplo, con Certbot). En el firewall permite SSH y HTTP/HTTPS; limita MySQL a la dirección privada de la VPS. No uses `DEBUG=1` en producción.
 
-Para revisar el servicio:
+Comprobaciones y logs:
 
 ```bash
-sudo systemctl status biblioteca
+sudo systemctl status biblioteca nginx --no-pager
 sudo journalctl -u biblioteca -n 100 --no-pager
+curl -fsS http://127.0.0.1/health
 ```
 
-## Endpoints principales
+## Actualizar una VPS que tenía la versión Django
 
-| Método | Ruta | Acceso |
-|---|---|---|
-| POST | `/api/auth/register/` | Público; crea lectores |
-| POST | `/api/auth/token/` | Público; entrega JWT |
-| POST | `/api/auth/token/refresh/` | Público; renueva JWT |
-| GET | `/api/auth/me/` | Usuario autenticado |
-| GET/POST | `/api/authors/`, `/api/categories/`, `/api/books/` | Lectura pública; escritura por personal |
-| GET/POST | `/api/copies/` | Lectura pública; administración por personal |
-| GET/POST | `/api/loans/` | Usuario autenticado |
-| GET | `/api/loans/active/`, `/api/loans/history/` | Usuario autenticado |
-| POST | `/api/loans/{id}/return/` | Propietario del préstamo o personal |
-| GET/POST/PATCH/DELETE | `/api/users/` | Administrador o bibliotecario; cambios de rol solo administrador |
+Esta versión FastAPI crea un esquema de base de datos propio mediante Alembic. No ejecutes estas migraciones sobre la base Django ni elimines su entorno o sus datos: las tablas y el formato de contraseñas difieren. Para conservar datos anteriores se requiere exportar y transformar los registros por separado.
 
-Swagger documenta los demás métodos, parámetros y cuerpos de cada operación.
+Si ya tenías la versión Django en la VPS:
 
-## Reglas principales
+1. Crea y verifica un respaldo de la base Django. Mantén esa base y el entorno virtual anterior mientras compruebas el nuevo servicio.
+2. Descarga los cambios: `sudo -u biblioteca git -C /opt/biblioteca/app pull --ff-only origin main`.
+3. Crea un entorno aislado `/opt/biblioteca/venv-fastapi` e instala allí los requisitos, sin reutilizar el entorno Django.
+4. Crea una base MySQL nueva y vacía, por ejemplo `biblioteca_fastapi`, configura `/etc/biblioteca/biblioteca.env` con esas credenciales, aplica las migraciones Alembic y crea un administrador siguiendo las instrucciones anteriores.
+5. Instala los archivos systemd y Nginx FastAPI de `deploy/`, ejecuta `sudo nginx -t`, recarga systemd y reinicia ambos servicios.
+6. Comprueba `/health` y `/api/docs`. Conserva la instalación anterior hasta confirmar el funcionamiento.
 
-- El lector solo puede pedir ejemplares disponibles para sí mismo.
-- Una reserva condicional del ejemplar evita préstamos simultáneos del mismo ejemplar.
-- Al devolver se libera el ejemplar; un segundo intento se rechaza.
-- Los préstamos se conservan como historial.
-- La eliminación de libros o usuarios con relaciones protegidas se rechaza.
-- Entradas inválidas responden `400`; autenticación faltante o inválida `401`; falta de permisos `403`; conflictos de disponibilidad o integridad `409`.
-
-## Demostración manual
-
-La rúbrica solicita demostrar los flujos funcionales, no conservar una suite de pruebas automatizadas:
-
-1. Registra un lector, inicia sesión y muestra los tokens. Comprueba también un login inválido.
-2. Sin token, consulta préstamos activos y confirma `401`; como lector, intenta escribir en catálogo y confirma `403`.
-3. Como personal, crea autor, categoría y libro con ejemplar disponible.
-4. Como lector, solicita el ejemplar y confirma que ya no está disponible.
-5. Intenta pedirlo otra vez y confirma `409`; devuelve el préstamo y comprueba que vuelve a estar disponible.
-6. Intenta cambiar un rol como bibliotecario (rechazado) y muestra que solo un administrador puede asignar roles.
+La actualización del repositorio por sí sola no cambia la aplicación que está ejecutándose ni copia los datos Django a la base nueva.

@@ -1,5 +1,5 @@
 [Unit]
-Description=Gunicorn service for the Biblioteca Django application
+Description=Uvicorn service for the Biblioteca FastAPI application
 After=network.target
 
 [Service]
@@ -12,7 +12,7 @@ Environment=PYTHONUNBUFFERED=1
 RuntimeDirectory=biblioteca
 RuntimeDirectoryMode=0750
 UMask=0007
-ExecStart=/opt/biblioteca/app/.venv/bin/gunicorn --workers 3 --bind unix:/run/biblioteca/gunicorn.sock config.wsgi:application
+ExecStart=/opt/biblioteca/venv-fastapi/bin/uvicorn app.main:app --workers 2 --uds /run/biblioteca/uvicorn.sock --proxy-headers --forwarded-allow-ips=127.0.0.1
 Restart=on-failure
 RestartSec=5
 
